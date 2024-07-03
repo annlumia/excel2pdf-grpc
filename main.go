@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -24,7 +23,8 @@ var RPCServerAddress string
 // const tempDirectory = ".temp"
 
 var (
-	flagRPCPort = flag.Uint("port", 8345, "Port number of gRPC server")
+	runner = flag.Bool("runner", false, "Run as a runner")
+	listen = flag.String("listen", ":8345", "Port number of gRPC server")
 )
 
 type routeConverterServer struct {
@@ -60,20 +60,42 @@ func (r *routeConverterServer) Exit(ctx context.Context, req *pb.ExitRequest) (*
 func main() {
 	flag.Parse()
 
-	addr := fmt.Sprintf("127.0.0.1:%v", *flagRPCPort)
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Printf("E! Failed to start RPC server. %s\n", err.Error())
-	}
+	if *runner {
+		// runFile is current file name with full path
+		// runFile, err := os.Executable()
+		// if err != nil {
+		// 	log.Printf("E! Failed to get executable file. %s\n", err.Error())
+		// 	os.Exit(1)
+		// }
 
-	RPCServerAddress = listener.Addr().String()
+		// for {
+		// 	cmd := exec.Command(runFile, "-listen", *listen)
+		// 	cmd.Stdout = os.Stdout
+		// 	cmd.Stderr = os.Stderr
 
-	RPCServer = grpc.NewServer()
+		// 	err = cmd.Run()
+		// 	if err != nil {
+		// 		log.Printf("E! Failed to run as a runner. %s\n", err.Error())
+		// 	}
 
-	pb.RegisterRouteConverterServer(RPCServer, &routeConverterServer{})
+		// 	log.Printf("I! Restarting runner...\n")
+		// 	time.Sleep(time.Second * 3)
+		// }
+	} else {
+		listener, err := net.Listen("tcp", *listen)
+		if err != nil {
+			log.Printf("E! Failed to start RPC server. %s\n", err.Error())
+		}
 
-	log.Printf("I! RPC server listening on %s\n", RPCServerAddress)
-	if err := RPCServer.Serve(listener); err != nil {
-		log.Printf("E! Failed to serve gRPC server. %s\n", err.Error())
+		RPCServerAddress = listener.Addr().String()
+
+		RPCServer = grpc.NewServer()
+
+		pb.RegisterRouteConverterServer(RPCServer, &routeConverterServer{})
+
+		log.Printf("I! RPC server listening on %s\n", RPCServerAddress)
+		if err := RPCServer.Serve(listener); err != nil {
+			log.Printf("E! Failed to serve gRPC server. %s\n", err.Error())
+		}
 	}
 }

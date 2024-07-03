@@ -11,5 +11,13 @@
       "mode": "debug",
       "program": "${workspaceFolder}"
     },
+    {
+      "name": "Launch client",
+      "type": "go",
+      "request": "launch",
+      "mode": "debug",
+      "program": "${workspaceFolder}/cmd/client",
+      "cwd": "${workspaceFolder}/cmd/client"
+    }
   ]
 }
