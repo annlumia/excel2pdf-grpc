@@ -38,17 +38,18 @@ func (o *o2pdfClient) Convert(ctx context.Context) (file_name string, err error)
 
 	o.client = o2pdf.NewConverterServiceClient(conn)
 
-	if err := o.upload(ctx); err != nil {
+	pdfFilename, err := o.upload(ctx)
+	if err != nil {
 		return "", err
 	}
 
-	return "", nil
+	return pdfFilename, nil
 }
 
-func (o *o2pdfClient) upload(ctx context.Context) error {
+func (o *o2pdfClient) upload(ctx context.Context) (string, error) {
 	stream, err := o.client.Convert(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	waitc := make(chan struct{})
@@ -69,7 +70,7 @@ func (o *o2pdfClient) upload(ctx context.Context) error {
 
 			if pdfFile.FilePath == "" {
 				baseFile := path.Base(strings.ReplaceAll(in.FileName, "\\", "/"))
-				pdfFile.SetFile(baseFile, "temp")
+				pdfFile.SetFile(baseFile, ".temp")
 			}
 
 			chunk := in.GetChunk()
@@ -80,13 +81,12 @@ func (o *o2pdfClient) upload(ctx context.Context) error {
 				return
 			}
 
-			fmt.Printf("File converted to %s\n", in.FileName)
 		}
 	}()
 
 	file, err := os.Open(o.filePath)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer file.Close()
 
@@ -99,14 +99,14 @@ func (o *o2pdfClient) upload(ctx context.Context) error {
 			if err == io.EOF {
 				break
 			}
-			return err
+			return "", err
 		}
 
 		if err := stream.Send(&o2pdf.ConvertRequest{
 			FileName: file.Name(),
 			Chunk:    buf[:n],
 		}); err != nil {
-			return err
+			return "", err
 		}
 
 		log.Printf("sent batch number %d\n", batchNumber)
@@ -115,10 +115,10 @@ func (o *o2pdfClient) upload(ctx context.Context) error {
 
 	err = stream.CloseSend()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	<-waitc
 
-	return nil
+	return pdfFile.FilePath, nil
 }
