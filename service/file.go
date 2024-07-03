@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"math/rand"
 	"os"
@@ -37,7 +36,6 @@ func (f *File) SetFile(fileName, path string) error {
 }
 
 func (f *File) Write(chunk []byte) error {
-	fmt.Println("Write file to", f.FilePath)
 	if f.OutputFile == nil {
 		return nil
 	}
